@@ -1,11 +1,16 @@
 # Changelog
 
+- Fixed the multi-panel demo lap so BITMAN reaches each end panel before the
+  corner rotation, crosses the opposite edge, and returns to the start.
+
 このプロジェクトの主な変更を記録します。
 
 ## [Unreleased]
 
 - 実演動画を参考に、片脚を次の地面へ掛ける8コマのまたぎ動作を追加
 - 静止中に腕振り、左右ステップ、ジャンプ、腕上げ、逆立ち風の動作をランダム再生
+- 複数Chain Monoの通常同期表示と、デモ時のパネル間往復移動に対応
+- 複数パネルのデモ移動を1枚目から終端へ進んで戻る一周に変更
 
 ## [0.1.0] - 2026-06-21
 

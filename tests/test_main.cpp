@@ -6,6 +6,7 @@
 #include "bitman/bitman_core.hpp"
 #include "bitman/frame8.hpp"
 #include "bitman/motion_classifier.hpp"
+#include "bitman/panel_composer.hpp"
 #include "bitman/sprites.hpp"
 
 namespace {
@@ -59,6 +60,32 @@ void testFrame8()
     CHECK(frame.translated(1, 0).row(0) == 0x40);
     CHECK(frame.translated(1, 0).row(1) == 0x00);
     CHECK(frame.toAscii().substr(0, 8) == "#.......");
+}
+
+void testPanelComposer()
+{
+    const bitman::Frame8 bar({0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+    CHECK(bitman::composePanelFrame(bar, 0, 0).row(0) == 0xFF);
+    CHECK(bitman::composePanelFrame(bar, 1, 0).row(0) == 0x00);
+    CHECK(bitman::composePanelFrame(bar, 0, 4).row(0) == 0x0F);
+    CHECK(bitman::composePanelFrame(bar, 1, 4).row(0) == 0xF0);
+    CHECK(bitman::composePanelFrame(bar, 0, 8).row(0) == 0x00);
+    CHECK(bitman::composePanelFrame(bar, 1, 8).row(0) == 0xFF);
+    CHECK(bitman::composePanelFrame(bar, 0, -4).row(0) == 0xF0);
+
+    CHECK(bitman::demoTravelOriginX(1, 7000) == 0);
+    CHECK(bitman::demoTravelOriginX(3, 0) == 0);
+    CHECK(bitman::demoTravelOriginX(3, 1000) == 0);
+    CHECK(bitman::demoTravelOriginX(3, 1450) == 8);
+    CHECK(bitman::demoTravelOriginX(3, 1900) == 16);
+    CHECK(bitman::demoTravelOriginX(3, 3979) == 16);
+    CHECK(bitman::demoTravelOriginX(3, 4880) == 16);
+    CHECK(bitman::demoTravelOriginX(3, 6959) == 16);
+    CHECK(bitman::demoTravelOriginX(3, 6960) == 16);
+    CHECK(bitman::demoTravelOriginX(3, 7410) == 8);
+    CHECK(bitman::demoTravelOriginX(3, 7860) == 0);
+    CHECK(bitman::demoTravelOriginX(3, 10840) == 0);
+    CHECK(bitman::demoTravelOriginX(3, 13820) == 0);
 }
 
 void testSpriteCatalog()
@@ -230,6 +257,7 @@ void testCorePipeline()
 int main()
 {
     testFrame8();
+    testPanelComposer();
     testSpriteCatalog();
     testGroundDirections();
     testGroundHysteresisAndRotation();

@@ -26,6 +26,7 @@ Controller Adapter
 - `MotionClassifier`: 加速度とジャイロから地面の辺、回転方向、運動状態を判定
 - `BitmanEngine`: 通常動作、地面切替、デモの時間軸を管理
 - `Frame8`: 8×8フレームの回転、反転、移動を提供
+- `panel_composer`: 横長の仮想キャンバスから各8×8パネルを切り出す
 - `sprites.cpp`: 人物と終了演出の基準ビットマップを保持
 - `BitmanCore`: MotionClassifierとBitmanEngineを接続
 
@@ -42,7 +43,7 @@ Controller Adapter
 
 ## Chain Mono Driver
 
-`ChainMonoDisplay`はM5Chainライブラリを利用し、`Frame8`をChain Monoへ送信します。現在のAtomS3R配線はUART2のRX=G1、TX=G2です。
+`ChainMonoDisplay`はM5Chainライブラリを利用し、検出したすべてのChain Monoへ`Frame8`を送信します。通常時は同一フレームを同期表示し、デモ時は`panel_composer`で仮想キャンバスを分割してパネル間移動を表現します。現在のAtomS3R配線はUART2のRX=G1、TX=G2です。
 
 ## PCテスト
 

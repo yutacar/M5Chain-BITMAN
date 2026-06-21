@@ -15,6 +15,7 @@ bitman::AtomS3RController controller;
 bitman::ChainMonoDisplay display;
 bitman::BitmanCore core;
 std::uint32_t lastReconnectMs = 0;
+std::uint32_t demoStartedMs = 0;
 bitman::GroundDirection lastGround = bitman::GroundDirection::Down;
 
 const char* modeName(bitman::BitmanMode mode)
@@ -43,6 +44,7 @@ void handleEvent(bitman::ControlEvent event, std::uint32_t now)
         case bitman::ControlEvent::NextMode:
         case bitman::ControlEvent::PlayDemo:
             core.playDemo(now);
+            demoStartedMs = now;
             controller.showStatus("ATOM BITMAN", "demo");
             break;
         case bitman::ControlEvent::CycleBrightness: {
@@ -72,8 +74,10 @@ void setup()
     core.reset(millis());
 
     if (display.begin(Serial2, kChainRxPin, kChainTxPin, 4)) {
-        controller.showStatus("ATOM BITMAN", "Chain Mono ready");
-        Serial.println("Chain Mono ready");
+        char text[24];
+        snprintf(text, sizeof(text), "%u Mono ready", display.panelCount());
+        controller.showStatus("ATOM BITMAN", text);
+        Serial.println(text);
     } else {
         controller.showStatus("ATOM BITMAN", "Mono not found");
         Serial.println("Chain Mono not found; reconnecting in background");
@@ -88,8 +92,18 @@ void loop()
 
     bitman::ImuSample sample;
     const bitman::ImuSample* samplePtr = controller.latestImuSample(sample) ? &sample : nullptr;
-    if (core.update(now, samplePtr) && display.connected()) {
-        if (!display.show(core.frame())) {
+    const bool frameChanged = core.update(now, samplePtr);
+    if (display.connected()) {
+        const bool traveling = core.mode() == bitman::BitmanMode::Demo &&
+                               core.pose() != bitman::Pose::Blank &&
+                               core.pose() != bitman::Pose::BoxOuter &&
+                               core.pose() != bitman::Pose::BoxMiddle &&
+                               core.pose() != bitman::Pose::BoxInner;
+        const bool shouldRefresh = frameChanged || traveling;
+        const bool shown = !shouldRefresh ||
+                           (traveling ? display.showTraveling(core.frame(), now - demoStartedMs)
+                                      : display.show(core.frame()));
+        if (!shown) {
             Serial.println("Chain Mono frame write failed");
         }
     }

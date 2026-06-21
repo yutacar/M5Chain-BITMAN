@@ -10,6 +10,7 @@ add_library(bitman_core
     src/core/bitman_engine.cpp
     src/core/frame8.cpp
     src/core/motion_classifier.cpp
+    src/core/panel_composer.cpp
     src/core/sprites.cpp
 )
 target_include_directories(bitman_core PUBLIC include)
@@ -24,4 +25,3 @@ target_link_libraries(bitman_preview PRIVATE bitman_core)
 
 enable_testing()
 add_test(NAME bitman_tests COMMAND bitman_tests)
-
