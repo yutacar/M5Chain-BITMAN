@@ -21,8 +21,14 @@ constexpr std::uint32_t kWalkIntervalMs = 450;
 constexpr std::uint32_t kCrouchIntervalMs = 450;
 constexpr std::uint32_t kWalkHoldMs = 650;
 constexpr std::uint32_t kTransitionFrameMs = 260;
-constexpr std::uint32_t kTransitionFrameCount = 6;
+constexpr std::uint32_t kTransitionFrameCount = 8;
 constexpr std::uint32_t kTransitionDurationMs = kTransitionFrameMs * kTransitionFrameCount;
+constexpr std::uint32_t kIdleActionFrameMs = 260;
+constexpr std::uint32_t kIdleActionFrameCount = 6;
+constexpr std::uint32_t kIdleActionDurationMs = kIdleActionFrameMs * kIdleActionFrameCount;
+constexpr std::uint32_t kIdleActionMinimumDelayMs = 2600;
+constexpr std::uint32_t kIdleActionDelayRangeMs = 3000;
+constexpr std::uint8_t kIdleActionCount = 6;
 constexpr std::uint32_t kDemoBlankMs = 1000;
 constexpr std::uint32_t kDemoCrouchMs = 900;
 constexpr std::uint32_t kDemoGroundPauseMs = 900;
@@ -57,6 +63,11 @@ GroundDirection groundFromIndex(int index)
     return static_cast<GroundDirection>(index);
 }
 
+bool timeReached(std::uint32_t nowMs, std::uint32_t targetMs)
+{
+    return static_cast<std::int32_t>(nowMs - targetMs) >= 0;
+}
+
 void tangentTowardNextCorner(GroundDirection ground, int direction, int& x, int& y)
 {
     static constexpr int kClockwiseX[4] = {1, 0, -1, 0};
@@ -84,6 +95,7 @@ void BitmanEngine::reset(std::uint32_t nowMs)
     demoStartGround_ = GroundDirection::Down;
     clockwise_ = true;
     transitioning_ = false;
+    idleActionActive_ = false;
     transitionDirection_ = 1;
     offsetX_ = 0;
     offsetY_ = 0;
@@ -93,6 +105,10 @@ void BitmanEngine::reset(std::uint32_t nowMs)
     motionStartedMs_ = nowMs;
     walkingUntilMs_ = nowMs;
     transitionStartedMs_ = nowMs;
+    idleActionStartedMs_ = nowMs;
+    randomState_ = 0xB17B17U ^ nowMs;
+    idleAction_ = 0;
+    scheduleNextIdleAction(nowMs);
 }
 
 void BitmanEngine::setMode(BitmanMode mode, std::uint32_t nowMs)
@@ -101,10 +117,12 @@ void BitmanEngine::setMode(BitmanMode mode, std::uint32_t nowMs)
     modeStartedMs_ = nowMs;
     motionStartedMs_ = nowMs;
     transitioning_ = false;
+    idleActionActive_ = false;
     offsetX_ = 0;
     offsetY_ = 0;
     if (mode == BitmanMode::Dance) {
         motion_ = MotionState::Neutral;
+        scheduleNextIdleAction(nowMs);
     }
 }
 
@@ -157,6 +175,7 @@ void BitmanEngine::startNextTransition(std::uint32_t nowMs, bool clockwise)
     transitionStartedMs_ = nowMs;
     motionStartedMs_ = nowMs;
     transitioning_ = true;
+    idleActionActive_ = false;
 }
 
 bool BitmanEngine::updateTransition(std::uint32_t nowMs)
@@ -183,21 +202,87 @@ bool BitmanEngine::renderTransitionFrame(std::uint32_t phase, GroundDirection ol
     int newOffsetY = 0;
     tangentTowardNextCorner(oldGround, direction, oldOffsetX, oldOffsetY);
     tangentTowardNextCorner(newGround, -direction, newOffsetX, newOffsetY);
+    const Pose oldStraddleA =
+        direction > 0 ? Pose::StraddleClockwiseA : Pose::StraddleCounterClockwiseA;
+    const Pose oldStraddleB =
+        direction > 0 ? Pose::StraddleClockwiseB : Pose::StraddleCounterClockwiseB;
+    const Pose newStraddleA =
+        direction > 0 ? Pose::StraddleCounterClockwiseA : Pose::StraddleClockwiseA;
+    const Pose newStraddleB =
+        direction > 0 ? Pose::StraddleCounterClockwiseB : Pose::StraddleClockwiseB;
     switch (phase) {
         case 0:
             return setPose(Pose::CrouchA, oldGround);
         case 1:
             return setPose(Pose::CrouchB, oldGround, oldOffsetX, oldOffsetY);
         case 2:
-            return setPose(Pose::CrouchA, oldGround, oldOffsetX, oldOffsetY);
+            return setPose(oldStraddleA, oldGround);
         case 3:
-            return setPose(Pose::CrouchA, newGround, newOffsetX, newOffsetY);
+            return setPose(oldStraddleB, oldGround);
         case 4:
-            return setPose(Pose::CrouchB, newGround, newOffsetX, newOffsetY);
+            return setPose(newStraddleB, newGround);
         case 5:
+            return setPose(newStraddleA, newGround);
+        case 6:
+            return setPose(Pose::CrouchB, newGround, newOffsetX, newOffsetY);
+        case 7:
         default:
             return setPose(Pose::CrouchA, newGround);
     }
+}
+
+std::uint32_t BitmanEngine::nextRandom()
+{
+    randomState_ ^= randomState_ << 13U;
+    randomState_ ^= randomState_ >> 17U;
+    randomState_ ^= randomState_ << 5U;
+    return randomState_;
+}
+
+void BitmanEngine::scheduleNextIdleAction(std::uint32_t nowMs)
+{
+    idleNextActionMs_ = nowMs + kIdleActionMinimumDelayMs +
+                        (nextRandom() % kIdleActionDelayRangeMs);
+}
+
+Pose BitmanEngine::idleActionPose(std::uint8_t action, std::uint32_t phase) const
+{
+    static constexpr std::array<std::array<Pose, kIdleActionFrameCount>, kIdleActionCount>
+        kIdleActions = {{
+            {{Pose::IdleA, Pose::IdleB, Pose::ShakeA, Pose::ShakeB, Pose::IdleB, Pose::IdleA}},
+            {{Pose::IdleA, Pose::StepLeftA, Pose::StepLeftB, Pose::StepLeftA, Pose::IdleB,
+              Pose::IdleA}},
+            {{Pose::IdleA, Pose::StepRightA, Pose::StepRightB, Pose::StepRightA, Pose::IdleB,
+              Pose::IdleA}},
+            {{Pose::CrouchB, Pose::JumpA, Pose::JumpB, Pose::JumpA, Pose::CrouchB,
+              Pose::CrouchA}},
+            {{Pose::IdleA, Pose::Surprise, Pose::Surprise, Pose::IdleB, Pose::CrouchB,
+              Pose::IdleA}},
+            {{Pose::CrouchB, Pose::JumpA, Pose::HeadstandA, Pose::HeadstandB, Pose::JumpB,
+              Pose::CrouchA}},
+        }};
+    if (phase >= kIdleActionFrameCount) {
+        phase = kIdleActionFrameCount - 1U;
+    }
+    return kIdleActions[action % kIdleActionCount][phase];
+}
+
+bool BitmanEngine::updateIdleAction(std::uint32_t nowMs)
+{
+    if (!idleActionActive_) {
+        idleAction_ = static_cast<std::uint8_t>(nextRandom() % kIdleActionCount);
+        idleActionStartedMs_ = nowMs;
+        idleActionActive_ = true;
+    }
+
+    const std::uint32_t elapsed = nowMs - idleActionStartedMs_;
+    if (elapsed >= kIdleActionDurationMs) {
+        idleActionActive_ = false;
+        scheduleNextIdleAction(nowMs);
+        motionStartedMs_ = nowMs;
+        return setPose(Pose::CrouchA, displayedGround_);
+    }
+    return setPose(idleActionPose(idleAction_, elapsed / kIdleActionFrameMs), displayedGround_);
 }
 
 bool BitmanEngine::updateDance(std::uint32_t nowMs, const MotionResult& motion)
@@ -206,6 +291,8 @@ bool BitmanEngine::updateDance(std::uint32_t nowMs, const MotionResult& motion)
     if (motion.state != motion_) {
         motion_ = motion.state;
         motionStartedMs_ = nowMs;
+        idleActionActive_ = false;
+        scheduleNextIdleAction(nowMs);
     }
 
     if (transitioning_) {
@@ -219,8 +306,18 @@ bool BitmanEngine::updateDance(std::uint32_t nowMs, const MotionResult& motion)
     if (motion.rotating) {
         walkingUntilMs_ = nowMs + kWalkHoldMs;
         clockwise_ = motion.clockwise;
+        idleActionActive_ = false;
+        scheduleNextIdleAction(nowMs);
     }
     const bool walking = static_cast<std::int32_t>(walkingUntilMs_ - nowMs) > 0;
+    // Ground orientation itself can classify as Crouch/Lean on a vertical
+    // device, so "stopped" is determined by rotation rather than tilt state.
+    if (walking) {
+        idleActionActive_ = false;
+        scheduleNextIdleAction(nowMs);
+    } else if (idleActionActive_ || timeReached(nowMs, idleNextActionMs_)) {
+        return updateIdleAction(nowMs);
+    }
     const std::uint32_t interval = walking ? kWalkIntervalMs : kCrouchIntervalMs;
     const std::uint32_t phase = (nowMs - motionStartedMs_) / interval;
     return setPose(dancePose(walking, clockwise_, phase), displayedGround_);

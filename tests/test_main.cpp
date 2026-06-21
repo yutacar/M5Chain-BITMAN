@@ -71,6 +71,12 @@ void testSpriteCatalog()
     CHECK(bitman::sprite(bitman::Pose::IdleA) != bitman::sprite(bitman::Pose::IdleB));
     CHECK(bitman::sprite(bitman::Pose::StepLeftA).mirrored() ==
           bitman::sprite(bitman::Pose::StepRightA));
+    CHECK(bitman::sprite(bitman::Pose::StraddleClockwiseA).mirrored() ==
+          bitman::sprite(bitman::Pose::StraddleCounterClockwiseA));
+    CHECK(bitman::sprite(bitman::Pose::StraddleClockwiseB).mirrored() ==
+          bitman::sprite(bitman::Pose::StraddleCounterClockwiseB));
+    CHECK(bitman::sprite(bitman::Pose::StraddleClockwiseA).row(7) != 0);
+    CHECK((bitman::sprite(bitman::Pose::StraddleClockwiseA).row(5) & 0x01U) != 0);
     CHECK(std::string(bitman::poseName(bitman::Pose::Surprise)) == "surprise");
 }
 
@@ -135,21 +141,24 @@ void testAnimationEngine()
     CHECK(engine.frame() == bitman::sprite(bitman::Pose::CrouchB).translated(1, 0));
 
     CHECK(engine.update(1120, motion));
-    CHECK(engine.pose() == bitman::Pose::CrouchA);
+    CHECK(engine.pose() == bitman::Pose::StraddleClockwiseA);
     CHECK(engine.ground() == bitman::GroundDirection::Down);
 
     CHECK(engine.update(1380, motion));
-    CHECK(engine.pose() == bitman::Pose::CrouchA);
-    CHECK(engine.ground() == bitman::GroundDirection::Right);
-    CHECK(engine.frame() ==
-          bitman::sprite(bitman::Pose::CrouchA).rotatedQuarterTurns(3).translated(0, 1));
+    CHECK(engine.pose() == bitman::Pose::StraddleClockwiseB);
+    CHECK(engine.ground() == bitman::GroundDirection::Down);
 
     CHECK(engine.update(1640, motion));
-    CHECK(engine.pose() == bitman::Pose::CrouchB);
-    CHECK(engine.update(1900, motion));
-    CHECK(engine.pose() == bitman::Pose::CrouchA);
+    CHECK(engine.pose() == bitman::Pose::StraddleCounterClockwiseB);
     CHECK(engine.ground() == bitman::GroundDirection::Right);
-    CHECK(!engine.update(2160, motion));
+    CHECK(engine.update(1900, motion));
+    CHECK(engine.pose() == bitman::Pose::StraddleCounterClockwiseA);
+    CHECK(engine.ground() == bitman::GroundDirection::Right);
+    CHECK(engine.update(2160, motion));
+    CHECK(engine.pose() == bitman::Pose::CrouchB);
+    CHECK(engine.update(2420, motion));
+    CHECK(engine.pose() == bitman::Pose::CrouchA);
+    CHECK(!engine.update(2680, motion));
 
     engine.playDemo(3000);
     engine.update(3000, motion);
@@ -158,13 +167,42 @@ void testAnimationEngine()
     engine.update(4100, motion);
     CHECK(engine.pose() == bitman::Pose::CrouchA);
     engine.update(5680, motion);
-    CHECK(engine.pose() == bitman::Pose::CrouchA);
-    CHECK(engine.ground() == bitman::GroundDirection::Up);
-    engine.update(14740, motion);
+    CHECK(engine.pose() == bitman::Pose::StraddleClockwiseB);
+    CHECK(engine.ground() == bitman::GroundDirection::Right);
+    engine.update(16820, motion);
     CHECK(engine.pose() == bitman::Pose::BoxOuter);
     CHECK(engine.ground() == bitman::GroundDirection::Right);
     engine.update(22000, motion);
     CHECK(engine.mode() == bitman::BitmanMode::Dance);
+
+    bitman::BitmanEngine idleEngine;
+    idleEngine.reset(0);
+    CHECK(idleEngine.update(0, bitman::MotionResult{}));
+    idleEngine.update(7000, bitman::MotionResult{});
+    idleEngine.update(7520, bitman::MotionResult{});
+    CHECK(idleEngine.pose() != bitman::Pose::CrouchA);
+    CHECK(idleEngine.pose() != bitman::Pose::CrouchB);
+
+    bool sawWave = false;
+    bool sawStep = false;
+    bool sawJump = false;
+    bool sawSurprise = false;
+    bool sawHeadstand = false;
+    idleEngine.reset(0);
+    for (std::uint32_t now = 0; now <= 60000; now += 130) {
+        idleEngine.update(now, bitman::MotionResult{});
+        const auto pose = idleEngine.pose();
+        sawWave = sawWave || pose == bitman::Pose::ShakeA || pose == bitman::Pose::ShakeB;
+        sawStep = sawStep || pose == bitman::Pose::StepLeftA || pose == bitman::Pose::StepLeftB ||
+                  pose == bitman::Pose::StepRightA || pose == bitman::Pose::StepRightB;
+        sawJump = sawJump || pose == bitman::Pose::JumpA || pose == bitman::Pose::JumpB;
+        sawSurprise = sawSurprise || pose == bitman::Pose::Surprise;
+        sawHeadstand =
+            sawHeadstand || pose == bitman::Pose::HeadstandA || pose == bitman::Pose::HeadstandB;
+    }
+    CHECK(static_cast<int>(sawWave) + static_cast<int>(sawStep) + static_cast<int>(sawJump) +
+              static_cast<int>(sawSurprise) + static_cast<int>(sawHeadstand) >=
+          4);
 }
 
 void testCorePipeline()
@@ -180,7 +218,7 @@ void testCorePipeline()
         core.update(now, &sample);
     }
     sample = imu(1, 0, 0);
-    for (std::uint32_t now = 520; now <= 2500; now += 20) {
+    for (std::uint32_t now = 520; now <= 3300; now += 20) {
         core.update(now, &sample);
     }
     CHECK(core.motion().ground == bitman::GroundDirection::Right);

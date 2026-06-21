@@ -10,7 +10,7 @@ constexpr Frame8 make(std::array<std::uint8_t, 8> rows)
     return Frame8(rows);
 }
 
-constexpr std::array<Frame8, 19> kSprites = {
+constexpr std::array<Frame8, 23> kSprites = {
     make({0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}),  // Blank
     // The canonical standing figure follows the original BITMAN product:
     // 2x2 head, narrow torso, detached arms, long legs and two-pixel feet.
@@ -29,16 +29,23 @@ constexpr std::array<Frame8, 19> kSprites = {
     make({0x66, 0x24, 0x24, 0x5A, 0x5A, 0x3C, 0x18, 0x18}),  // HeadstandA
     make({0x66, 0x24, 0x24, 0x5A, 0x99, 0x3C, 0x18, 0x18}),  // HeadstandB
     make({0x5A, 0x5A, 0x3C, 0x18, 0x18, 0x24, 0x24, 0x66}),  // Surprise
+    // Corner crossing from the video: the torso stays recognizable while
+    // one leg remains on the old edge and the other hooks onto the new edge.
+    make({0x18, 0x18, 0x3C, 0x5A, 0x5A, 0x23, 0x21, 0x61}),  // StraddleClockwiseA
+    make({0x0C, 0x0C, 0x1E, 0x2D, 0x2D, 0x23, 0x21, 0x61}),  // StraddleClockwiseB
+    make({0x18, 0x18, 0x3C, 0x5A, 0x5A, 0xC4, 0x84, 0x86}),  // StraddleCounterClockwiseA
+    make({0x30, 0x30, 0x78, 0xB4, 0xB4, 0xC4, 0x84, 0x86}),  // StraddleCounterClockwiseB
     make({0xFF, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0xFF}),  // BoxOuter
     make({0x00, 0x7E, 0x42, 0x42, 0x42, 0x42, 0x7E, 0x00}),  // BoxMiddle
     make({0x00, 0x00, 0x3C, 0x24, 0x24, 0x3C, 0x00, 0x00}),  // BoxInner
 };
 
-constexpr std::array<const char*, 19> kPoseNames = {
+constexpr std::array<const char*, 23> kPoseNames = {
     "blank",      "idle-a",     "idle-b",      "step-left-a", "step-left-b",
     "step-right-a", "step-right-b", "crouch-a",   "crouch-b",    "jump-a",
     "jump-b",     "shake-a",    "shake-b",     "headstand-a", "headstand-b",
-    "surprise",   "box-outer",  "box-middle",  "box-inner",
+    "surprise",   "straddle-cw-a", "straddle-cw-b", "straddle-ccw-a",
+    "straddle-ccw-b", "box-outer",  "box-middle",  "box-inner",
 };
 
 }  // namespace

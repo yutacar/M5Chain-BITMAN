@@ -45,7 +45,7 @@ const char* groundName(bitman::GroundDirection ground)
 int main()
 {
     const std::vector<Segment> script = {
-        {"ground down / crouch", sample(0, 1, 0), 1200},
+        {"ground down / crouch and random idle action", sample(0, 1, 0), 9000},
         {"rotate clockwise", sample(0.7F, 0.7F, 0), 500},
         {"ground right", sample(1, 0, 0), 1200},
         {"ground up", sample(0, -1, 0), 1200},

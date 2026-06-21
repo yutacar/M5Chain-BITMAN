@@ -32,6 +32,10 @@ private:
                                GroundDirection newGround, int direction);
     bool updateTransition(std::uint32_t nowMs);
     void startNextTransition(std::uint32_t nowMs, bool clockwise);
+    Pose idleActionPose(std::uint8_t action, std::uint32_t phase) const;
+    bool updateIdleAction(std::uint32_t nowMs);
+    void scheduleNextIdleAction(std::uint32_t nowMs);
+    std::uint32_t nextRandom();
     bool updateDance(std::uint32_t nowMs, const MotionResult& motion);
     bool updateDemo(std::uint32_t nowMs);
 
@@ -44,6 +48,7 @@ private:
     GroundDirection demoStartGround_ = GroundDirection::Down;
     bool clockwise_ = true;
     bool transitioning_ = false;
+    bool idleActionActive_ = false;
     int transitionDirection_ = 1;
     int offsetX_ = 0;
     int offsetY_ = 0;
@@ -53,6 +58,10 @@ private:
     std::uint32_t motionStartedMs_ = 0;
     std::uint32_t walkingUntilMs_ = 0;
     std::uint32_t transitionStartedMs_ = 0;
+    std::uint32_t idleActionStartedMs_ = 0;
+    std::uint32_t idleNextActionMs_ = 0;
+    std::uint32_t randomState_ = 0xB17B17U;
+    std::uint8_t idleAction_ = 0;
 };
 
 }  // namespace bitman
