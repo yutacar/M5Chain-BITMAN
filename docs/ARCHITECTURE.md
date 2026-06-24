@@ -43,7 +43,9 @@ Controller Adapter
 
 ## Chain Mono Driver
 
-`ChainMonoDisplay`はM5Chainライブラリを利用し、検出したすべてのChain Monoへ`Frame8`を送信します。通常時は同一フレームを同期表示し、デモ時は`panel_composer`で仮想キャンバスを分割してパネル間移動を表現します。現在のAtomS3R配線はUART2のRX=G1、TX=G2です。
+`ChainMonoDisplay`はM5Chainライブラリを利用し、検出したすべてのChain Monoへ`Frame8`を送信します。通常時は同一フレームを同期表示し、デモ時は`panel_composer`で仮想キャンバスを分割してパネル間移動を表現します。
+
+標準の`m5stack-atoms3r`はAtomic ToChain Base（RX=G6、TX=G5）、Atomic Motion Base v1.2 PORT B（RX=G7、TX=G8）、従来の直結（RX=G1、TX=G2）の順で自動探索します。再接続時は最後に成功した方式を優先します。接続方式を固定する`m5stack-atoms3r-tochain`、`m5stack-atoms3r-motion-v12`、`m5stack-atoms3r-direct`では、UARTピンを`BITMAN_CHAIN_RX_PIN`と`BITMAN_CHAIN_TX_PIN`として注入します。BITMAN Coreは配線方式に依存しません。
 
 ## PCテスト
 

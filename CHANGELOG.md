@@ -7,6 +7,10 @@
 
 ## [Unreleased]
 
+- Atomic ToChain Base（AtomS3R RX=G6、TX=G5）を自動判別と固定ビルドへ追加
+- PORT BとAtomS3R直結を起動時・再接続時に自動判別する標準ファームウェアを追加
+- Atomic Motion Base v1.2のPORT B（AtomS3R RX=G7、TX=G8）経由でChain Monoを制御するビルド構成を追加
+- 従来のAtomS3R G1/G2直結構成を`m5stack-atoms3r-direct`として維持
 - 実演動画を参考に、片脚を次の地面へ掛ける8コマのまたぎ動作を追加
 - 静止中に腕振り、左右ステップ、ジャンプ、腕上げ、逆立ち風の動作をランダム再生
 - 複数Chain Monoの通常同期表示と、デモ時のパネル間往復移動に対応

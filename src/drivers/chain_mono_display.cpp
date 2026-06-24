@@ -13,6 +13,10 @@ bool ChainMonoDisplay::operationSucceeded(chain_status_t status, std::uint8_t op
 
 bool ChainMonoDisplay::begin(HardwareSerial& serial, int rxPin, int txPin, std::uint8_t brightness)
 {
+    if (serial_ != nullptr) {
+        serial_->end();
+        delay(2);
+    }
     serial_ = &serial;
     rxPin_ = rxPin;
     txPin_ = txPin;
