@@ -150,6 +150,7 @@ void testAnimationEngine()
     motion.ground = bitman::GroundDirection::Down;
     CHECK(engine.update(0, motion));
     CHECK(engine.pose() == bitman::Pose::CrouchA);
+    CHECK(engine.frame() == bitman::sprite(bitman::Pose::CrouchA).rotatedQuarterTurns(1));
     CHECK(!engine.update(100, motion));
     CHECK(engine.update(500, motion));
     CHECK(engine.pose() == bitman::Pose::CrouchB);
@@ -165,21 +166,24 @@ void testAnimationEngine()
     CHECK(engine.update(860, motion));
     CHECK(engine.pose() == bitman::Pose::CrouchB);
     CHECK(engine.ground() == bitman::GroundDirection::Down);
-    CHECK(engine.frame() == bitman::sprite(bitman::Pose::CrouchB).translated(1, 0));
+    CHECK(engine.frame() ==
+          bitman::sprite(bitman::Pose::CrouchB).rotatedQuarterTurns(1).translated(-1, 0));
 
     CHECK(engine.update(1120, motion));
-    CHECK(engine.pose() == bitman::Pose::StraddleClockwiseA);
+    CHECK(engine.pose() == bitman::Pose::StraddleCounterClockwiseA);
     CHECK(engine.ground() == bitman::GroundDirection::Down);
 
     CHECK(engine.update(1380, motion));
-    CHECK(engine.pose() == bitman::Pose::StraddleClockwiseB);
+    CHECK(engine.pose() == bitman::Pose::StraddleCounterClockwiseB);
     CHECK(engine.ground() == bitman::GroundDirection::Down);
 
     CHECK(engine.update(1640, motion));
-    CHECK(engine.pose() == bitman::Pose::StraddleCounterClockwiseB);
+    CHECK(engine.pose() == bitman::Pose::StraddleClockwiseB);
     CHECK(engine.ground() == bitman::GroundDirection::Right);
+    CHECK(engine.frame() ==
+          bitman::sprite(bitman::Pose::StraddleClockwiseB).rotatedQuarterTurns(2));
     CHECK(engine.update(1900, motion));
-    CHECK(engine.pose() == bitman::Pose::StraddleCounterClockwiseA);
+    CHECK(engine.pose() == bitman::Pose::StraddleClockwiseA);
     CHECK(engine.ground() == bitman::GroundDirection::Right);
     CHECK(engine.update(2160, motion));
     CHECK(engine.pose() == bitman::Pose::CrouchB);
@@ -194,7 +198,7 @@ void testAnimationEngine()
     engine.update(4100, motion);
     CHECK(engine.pose() == bitman::Pose::CrouchA);
     engine.update(5680, motion);
-    CHECK(engine.pose() == bitman::Pose::StraddleClockwiseB);
+    CHECK(engine.pose() == bitman::Pose::StraddleCounterClockwiseB);
     CHECK(engine.ground() == bitman::GroundDirection::Right);
     engine.update(16820, motion);
     CHECK(engine.pose() == bitman::Pose::BoxOuter);

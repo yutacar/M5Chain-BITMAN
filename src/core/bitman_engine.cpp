@@ -35,18 +35,12 @@ constexpr std::uint32_t kDemoGroundPauseMs = 900;
 
 std::uint8_t rotationForGround(GroundDirection ground)
 {
-    // The source sprite has its feet at the bottom edge.
-    switch (ground) {
-        case GroundDirection::Right:
-            return 3;  // Counter-clockwise: feet move to the right edge.
-        case GroundDirection::Up:
-            return 2;
-        case GroundDirection::Left:
-            return 1;
-        case GroundDirection::Down:
-        default:
-            return 0;
-    }
+    // The source sprite has its feet at the bottom edge, while the physical
+    // Chain Mono mounting treats "ground down" as a right-rotated display.
+    // Keep the logical ground order unchanged and advance one rendered quarter
+    // turn per ground: Down=1, Right=2, Up=3, Left=0.
+    constexpr std::uint8_t kGroundDownDisplayOffset = 1;
+    return static_cast<std::uint8_t>((static_cast<int>(ground) + kGroundDownDisplayOffset) & 3);
 }
 
 int groundIndex(GroundDirection ground)
@@ -196,20 +190,25 @@ bool BitmanEngine::updateTransition(std::uint32_t nowMs)
 bool BitmanEngine::renderTransitionFrame(std::uint32_t phase, GroundDirection oldGround,
                                          GroundDirection newGround, int direction)
 {
+    // The rendered ground has a fixed 90-degree mounting offset, so the visual
+    // corner BITMAN crosses is the opposite tangent from the logical ground
+    // direction. Keep the ground transition order unchanged, and only flip the
+    // corner-crossing choreography.
+    const int cornerDirection = -direction;
     int oldOffsetX = 0;
     int oldOffsetY = 0;
     int newOffsetX = 0;
     int newOffsetY = 0;
-    tangentTowardNextCorner(oldGround, direction, oldOffsetX, oldOffsetY);
-    tangentTowardNextCorner(newGround, -direction, newOffsetX, newOffsetY);
+    tangentTowardNextCorner(oldGround, cornerDirection, oldOffsetX, oldOffsetY);
+    tangentTowardNextCorner(newGround, -cornerDirection, newOffsetX, newOffsetY);
     const Pose oldStraddleA =
-        direction > 0 ? Pose::StraddleClockwiseA : Pose::StraddleCounterClockwiseA;
+        cornerDirection > 0 ? Pose::StraddleClockwiseA : Pose::StraddleCounterClockwiseA;
     const Pose oldStraddleB =
-        direction > 0 ? Pose::StraddleClockwiseB : Pose::StraddleCounterClockwiseB;
+        cornerDirection > 0 ? Pose::StraddleClockwiseB : Pose::StraddleCounterClockwiseB;
     const Pose newStraddleA =
-        direction > 0 ? Pose::StraddleCounterClockwiseA : Pose::StraddleClockwiseA;
+        cornerDirection > 0 ? Pose::StraddleCounterClockwiseA : Pose::StraddleClockwiseA;
     const Pose newStraddleB =
-        direction > 0 ? Pose::StraddleCounterClockwiseB : Pose::StraddleClockwiseB;
+        cornerDirection > 0 ? Pose::StraddleCounterClockwiseB : Pose::StraddleClockwiseB;
     switch (phase) {
         case 0:
             return setPose(Pose::CrouchA, oldGround);
